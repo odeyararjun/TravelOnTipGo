@@ -6,8 +6,12 @@
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 	<flow name="travelontip_extsystemFlow" doc:id="9c55055d-55e2-4c1d-849c-7b11cbfd24e4" >
-		<http:listener doc:name="Listener" doc:id="32ab3478-0023-4ebb-82ee-40d31bf9a218" config-ref="HTTP_Listener_config" path="${http.listener.path}" />
-		<logger level="INFO" doc:name="Logger" doc:id="5ddc1a35-b476-4212-a585-48e2376497cb" message="Request Recived for TravelOnTip external system TransactionId: #[attributes.headers.transactionId]" />
+		<http:listener doc:name="Listener" doc:id="32ab3478-0023-4ebb-82ee-40d31bf9a218" config-ref="HTTP_Listener_config" path="${http.listener.path}" >
+			<http:error-response >
+				<http:body ><![CDATA[#[vars.errorMsg default "Critical Error"]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="5ddc1a35-b476-4212-a585-48e2376497cb" message="Request Recived for TravelOnTip external system TransactionId: #[vars.transactionId]" />
 		<ee:transform doc:name="Transform Message" doc:id="d905503b-5de1-48ab-9348-3548cbdb4bd7" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
@@ -44,6 +48,25 @@ attributes.headers.transactionId]]></ee:set-variable>
 		<error-handler >
 			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="3d2dfb65-2ca1-4692-983c-c827da4523a4" >
 				<logger level="INFO" doc:name="Logger" doc:id="33871448-8afe-4e6b-b0f1-13527bcbe466" message="error occured for  TravelOnTip external system TransactionId: #[vars.transactionId] " />
+				<ee:transform doc:name="Transform Message" doc:id="fd90e71b-d6fd-4657-81ba-6b438a076c8c" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="errorMsg" ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"ErrorCode" : "XE1023",
+	"ErrorMessage" : "error in travelonTip system"
+}]]></ee:set-variable>
+						<ee:set-variable variableName="StatusCode" ><![CDATA[500]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
 			</on-error-propagate>
 		</error-handler>
 	</flow>
